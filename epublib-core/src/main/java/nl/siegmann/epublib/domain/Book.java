@@ -6,8 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-
-
+import android.os.Parcel;
+import android.os.Parcelable;
 
 /**
  * Representation of a Book.
@@ -293,7 +293,7 @@ import java.util.Map;
  * @author paul
  *
  */
-public class Book implements Serializable {
+public class Book implements Serializable, Parcelable {
 	
 	private static final long serialVersionUID = 2068355170895770100L;
 
@@ -305,7 +305,29 @@ public class Book implements Serializable {
 	private Resource opfResource;
 	private Resource ncxResource;
 	private Resource coverImage;
+
+	/**
+	 * 
+	 */
+	public Book()
+	{
+	}
 	
+	/**
+	 * @param source
+	 */
+	public Book(Parcel source)
+	{
+		if (source.readByte() == 1) resources = source.readParcelable(Resources.class.getClassLoader());
+		if (source.readByte() == 1) metadata = source.readParcelable(Metadata.class.getClassLoader());
+		if (source.readByte() == 1) spine = source.readParcelable(Spine.class.getClassLoader());
+		if (source.readByte() == 1) tableOfContents = source.readParcelable(TableOfContents.class.getClassLoader());
+		if (source.readByte() == 1) guide = source.readParcelable(Guide.class.getClassLoader());
+		if (source.readByte() == 1) opfResource = source.readParcelable(Resource.class.getClassLoader());
+		if (source.readByte() == 1) ncxResource = source.readParcelable(Resource.class.getClassLoader());
+		if (source.readByte() == 1) coverImage = source.readParcelable(Resource.class.getClassLoader());
+	}
+
 	/**
 	 * Adds the resource to the table of contents of the book as a child section of the given parentSection
 	 * 
@@ -314,162 +336,178 @@ public class Book implements Serializable {
 	 * @param resource
 	 * @return The table of contents
 	 */
-	public TOCReference addSection(TOCReference parentSection, String sectionTitle,
-			Resource resource) {
+	public TOCReference addSection(TOCReference parentSection, String sectionTitle, Resource resource)
+	{
 		getResources().add(resource);
-		if (spine.findFirstResourceById(resource.getId()) < 0)  {
+		if (spine.findFirstResourceById(resource.getId()) < 0)
+		{
 			spine.addSpineReference(new SpineReference(resource));
 		}
 		return parentSection.addChildSection(new TOCReference(sectionTitle, resource));
 	}
 
-	public void generateSpineFromTableOfContents() {
+	public void generateSpineFromTableOfContents()
+	{
 		Spine spine = new Spine(tableOfContents);
-		
+
 		// in case the tocResource was already found and assigned
 		spine.setTocResource(this.spine.getTocResource());
-		
+
 		this.spine = spine;
 	}
-	
+
 	/**
-	 * Adds a resource to the book's set of resources, table of contents and if there is no resource with the id in the spine also adds it to the spine.
+	 * Adds a resource to the book's set of resources, table of contents and if there is no resource with the id in the spine also adds it to the
+	 * spine.
 	 * 
 	 * @param title
 	 * @param resource
 	 * @return The table of contents
 	 */
-	public TOCReference addSection(String title, Resource resource) {
+	public TOCReference addSection(String title, Resource resource)
+	{
 		getResources().add(resource);
 		TOCReference tocReference = tableOfContents.addTOCReference(new TOCReference(title, resource));
-		if (spine.findFirstResourceById(resource.getId()) < 0)  {
+		if (spine.findFirstResourceById(resource.getId()) < 0)
+		{
 			spine.addSpineReference(new SpineReference(resource));
 		}
 		return tocReference;
 	}
-	
-	
+
 	/**
 	 * The Book's metadata (titles, authors, etc)
 	 * 
 	 * @return The Book's metadata (titles, authors, etc)
 	 */
-	public Metadata getMetadata() {
+	public Metadata getMetadata()
+	{
 		return metadata;
 	}
-	public void setMetadata(Metadata metadata) {
+
+	public void setMetadata(Metadata metadata)
+	{
 		this.metadata = metadata;
 	}
-	
 
-	public void setResources(Resources resources) {
+	public void setResources(Resources resources)
+	{
 		this.resources = resources;
 	}
 
-
-	public Resource addResource(Resource resource) {
+	public Resource addResource(Resource resource)
+	{
 		return resources.add(resource);
 	}
-	
+
 	/**
 	 * The collection of all images, chapters, sections, xhtml files, stylesheets, etc that make up the book.
 	 * 
 	 * @return The collection of all images, chapters, sections, xhtml files, stylesheets, etc that make up the book.
 	 */
-	public Resources getResources() {
+	public Resources getResources()
+	{
 		return resources;
 	}
-
 
 	/**
 	 * The sections of the book that should be shown if a user reads the book from start to finish.
 	 * 
 	 * @return The Spine
 	 */
-	public Spine getSpine() {
+	public Spine getSpine()
+	{
 		return spine;
 	}
 
-
-	public void setSpine(Spine spine) {
+	public void setSpine(Spine spine)
+	{
 		this.spine = spine;
 	}
-
 
 	/**
 	 * The Table of Contents of the book.
 	 * 
 	 * @return The Table of Contents of the book.
 	 */
-	public TableOfContents getTableOfContents() {
+	public TableOfContents getTableOfContents()
+	{
 		return tableOfContents;
 	}
 
-
-	public void setTableOfContents(TableOfContents tableOfContents) {
+	public void setTableOfContents(TableOfContents tableOfContents)
+	{
 		this.tableOfContents = tableOfContents;
 	}
-	
+
 	/**
-	 * The book's cover page as a Resource.
-	 * An XHTML document containing a link to the cover image.
+	 * The book's cover page as a Resource. An XHTML document containing a link to the cover image.
 	 * 
 	 * @return The book's cover page as a Resource
 	 */
-	public Resource getCoverPage() {
+	public Resource getCoverPage()
+	{
 		Resource coverPage = guide.getCoverPage();
-		if (coverPage == null) {
+		if (coverPage == null)
+		{
 			coverPage = spine.getResource(0);
 		}
 		return coverPage;
 	}
-	
-	
-	public void setCoverPage(Resource coverPage) {
-		if (coverPage == null) {
+
+	public void setCoverPage(Resource coverPage)
+	{
+		if (coverPage == null)
+		{
 			return;
 		}
-		if (! resources.containsByHref(coverPage.getHref())) {
+		if (!resources.containsByHref(coverPage.getHref()))
+		{
 			resources.add(coverPage);
 		}
 		guide.setCoverPage(coverPage);
 	}
-	
+
 	/**
 	 * Gets the first non-blank title from the book's metadata.
 	 * 
 	 * @return the first non-blank title from the book's metadata.
 	 */
-	public String getTitle() {
+	public String getTitle()
+	{
 		return getMetadata().getFirstTitle();
 	}
-	
-	
+
 	/**
 	 * The book's cover image.
 	 * 
 	 * @return The book's cover image.
 	 */
-	public Resource getCoverImage() {
+	public Resource getCoverImage()
+	{
 		return coverImage;
 	}
 
-	public void setCoverImage(Resource coverImage) {
-		if (coverImage == null) {
+	public void setCoverImage(Resource coverImage)
+	{
+		if (coverImage == null)
+		{
 			return;
 		}
-		if (! resources.containsByHref(coverImage.getHref())) {
+		if (!resources.containsByHref(coverImage.getHref()))
+		{
 			resources.add(coverImage);
 		}
 		this.coverImage = coverImage;
 	}
-	
+
 	/**
 	 * The guide; contains references to special sections of the book like colophon, glossary, etc.
 	 * 
 	 * @return The guide; contains references to special sections of the book like colophon, glossary, etc.
 	 */
-	public Guide getGuide() {
+	public Guide getGuide()
+	{
 		return guide;
 	}
 
@@ -484,47 +522,100 @@ public class Book implements Serializable {
 	 * <li>The resources of the Guide that are not already in the result</li>
 	 * </ul>
 	 * To get all html files that make up the epub file use {@link #getResources()}
+	 * 
 	 * @return All Resources of the Book that can be reached via the Spine, the TableOfContents or the Guide.
 	 */
-	public List<Resource> getContents() {
+	public List<Resource> getContents()
+	{
 		Map<String, Resource> result = new LinkedHashMap<String, Resource>();
 		addToContentsResult(getCoverPage(), result);
 
-		for (SpineReference spineReference: getSpine().getSpineReferences()) {
+		for (SpineReference spineReference : getSpine().getSpineReferences())
+		{
 			addToContentsResult(spineReference.getResource(), result);
 		}
 
-		for (Resource resource: getTableOfContents().getAllUniqueResources()) {
+		for (Resource resource : getTableOfContents().getAllUniqueResources())
+		{
 			addToContentsResult(resource, result);
 		}
-		
-		for (GuideReference guideReference: getGuide().getReferences()) {
+
+		for (GuideReference guideReference : getGuide().getReferences())
+		{
 			addToContentsResult(guideReference.getResource(), result);
 		}
 
 		return new ArrayList<Resource>(result.values());
 	}
-	
-	private static void addToContentsResult(Resource resource, Map<String, Resource> allReachableResources){
-		if (resource != null && (! allReachableResources.containsKey(resource.getHref()))) {
+
+	private static void addToContentsResult(Resource resource, Map<String, Resource> allReachableResources)
+	{
+		if (resource != null && (!allReachableResources.containsKey(resource.getHref())))
+		{
 			allReachableResources.put(resource.getHref(), resource);
 		}
 	}
 
-	public Resource getOpfResource() {
+	public Resource getOpfResource()
+	{
 		return opfResource;
 	}
-	
-	public void setOpfResource(Resource opfResource) {
+
+	public void setOpfResource(Resource opfResource)
+	{
 		this.opfResource = opfResource;
 	}
-	
-	public void setNcxResource(Resource ncxResource) {
+
+	public void setNcxResource(Resource ncxResource)
+	{
 		this.ncxResource = ncxResource;
 	}
 
-	public Resource getNcxResource() {
+	public Resource getNcxResource()
+	{
 		return ncxResource;
 	}
-}
 
+	/// Parcelable
+	@Override
+	public int describeContents()
+	{
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags)
+	{
+		dest.writeByte((byte)(resources != null ? 1 : 0));
+		if (resources != null) dest.writeParcelable(resources, 0);
+		dest.writeByte((byte)(metadata != null ? 1 : 0));
+		if (metadata != null) dest.writeParcelable(metadata, 0);
+		dest.writeByte((byte)(spine != null ? 1 : 0));
+		if (spine != null) dest.writeParcelable(spine, 0);
+		dest.writeByte((byte)(tableOfContents != null ? 1 : 0));
+		if (tableOfContents != null) dest.writeParcelable(tableOfContents, 0);
+		dest.writeByte((byte)(guide != null ? 1 : 0));
+		if (guide != null) dest.writeParcelable(guide, 0);
+		dest.writeByte((byte)(opfResource != null ? 1 : 0));
+		if (opfResource != null) dest.writeParcelable(opfResource, 0);
+		dest.writeByte((byte)(ncxResource != null ? 1 : 0));
+		if (ncxResource != null) dest.writeParcelable(ncxResource, 0);
+		dest.writeByte((byte)(coverImage != null ? 1 : 0));
+		if (coverImage != null) dest.writeParcelable(coverImage, 0);
+	}
+
+	public static final Parcelable.Creator<Book> CREATOR = new Parcelable.Creator<Book>()
+	{
+		@Override
+		public Book createFromParcel(Parcel source)
+		{
+			return new Book(source);
+		}
+		
+		@Override
+		public Book[] newArray(int size)
+		{
+			return new Book[size];
+		}
+	};
+}

@@ -11,15 +11,17 @@ import java.util.Map;
 import nl.siegmann.epublib.Constants;
 import nl.siegmann.epublib.service.MediatypeService;
 import nl.siegmann.epublib.util.StringUtil;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 /**
- * All the resources that make up the book.
- * XHTML files, images and epub xml documents must be here.
+ * All the resources that make up the book. XHTML files, images and epub xml documents must be here.
  * 
  * @author paul
- *
+ * 
  */
-public class Resources implements Serializable {
+public class Resources implements Serializable, Parcelable
+{
 
 	/**
 	 * 
@@ -28,9 +30,33 @@ public class Resources implements Serializable {
 	private static final String IMAGE_PREFIX = "image_";
 	private static final String ITEM_PREFIX = "item_";
 	private int lastId = 1;
-	
+
 	private Map<String, Resource> resources = new HashMap<String, Resource>();
-	
+
+	public Resources()
+	{}
+
+	/**
+	 * @param source
+	 */
+	public Resources(Parcel source)
+	{
+		lastId = source.readInt();
+		if (source.readByte() == 1)
+		{
+			final ArrayList<String> keys = new ArrayList<String>();
+			source.readStringList(keys);
+			final ArrayList<Resource> values = new ArrayList<Resource>();
+			source.readTypedList(values, Resource.CREATOR);
+			final int size = keys.size();
+			resources = new HashMap<String, Resource>();
+			for (int i = 0; i < size; i++)
+			{
+				resources.put(keys.get(i), values.get(i));
+			}
+		}
+	}
+
 	/**
 	 * Adds a resource to the resources.
 	 * 
@@ -39,7 +65,8 @@ public class Resources implements Serializable {
 	 * @param resource
 	 * @return the newly added resource
 	 */
-	public Resource add(Resource resource) {
+	public Resource add(Resource resource)
+	{
 		fixResourceHref(resource);
 		fixResourceId(resource);
 		this.resources.put(resource.getHref(), resource);
@@ -51,19 +78,22 @@ public class Resources implements Serializable {
 	 * 
 	 * @param resource
 	 */
-	public void fixResourceId(Resource resource) {
-		String  resourceId = resource.getId();
-		
+	public void fixResourceId(Resource resource)
+	{
+		String resourceId = resource.getId();
+
 		// first try and create a unique id based on the resource's href
-		if (StringUtil.isBlank(resource.getId())) {
+		if (StringUtil.isBlank(resource.getId()))
+		{
 			resourceId = StringUtil.substringBeforeLast(resource.getHref(), '.');
 			resourceId = StringUtil.substringAfterLast(resourceId, '/');
 		}
-		
+
 		resourceId = makeValidId(resourceId, resource);
-		
+
 		// check if the id is unique. if not: create one from scratch
-		if (StringUtil.isBlank(resourceId) || containsId(resourceId)) {
+		if (StringUtil.isBlank(resourceId) || containsId(resourceId))
+		{
 			resourceId = createUniqueResourceId(resource);
 		}
 		resource.setId(resourceId);
@@ -75,42 +105,55 @@ public class Resources implements Serializable {
 	 * @param resource
 	 * @return a valid id
 	 */
-	private String makeValidId(String resourceId, Resource resource) {
-		if (StringUtil.isNotBlank(resourceId) && ! Character.isJavaIdentifierStart(resourceId.charAt(0))) {
+	private String makeValidId(String resourceId, Resource resource)
+	{
+		if (StringUtil.isNotBlank(resourceId) && !Character.isJavaIdentifierStart(resourceId.charAt(0)))
+		{
 			resourceId = getResourceItemPrefix(resource) + resourceId;
 		}
 		return resourceId;
 	}
-	
-	private String getResourceItemPrefix(Resource resource) {
+
+	private String getResourceItemPrefix(Resource resource)
+	{
 		String result;
-		if (MediatypeService.isBitmapImage(resource.getMediaType())) {
+		if (MediatypeService.isBitmapImage(resource.getMediaType()))
+		{
 			result = IMAGE_PREFIX;
-		} else {
+		}
+		else
+		{
 			result = ITEM_PREFIX;
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Creates a new resource id that is guaranteed to be unique for this set of Resources
 	 * 
 	 * @param resource
 	 * @return a new resource id that is guaranteed to be unique for this set of Resources
 	 */
-	private String createUniqueResourceId(Resource resource) {
+	private String createUniqueResourceId(Resource resource)
+	{
 		int counter = lastId;
-		if (counter == Integer.MAX_VALUE) {
-			if (resources.size() == Integer.MAX_VALUE) {
-				throw new IllegalArgumentException("Resources contains " + Integer.MAX_VALUE + " elements: no new elements can be added");
-			} else {
+		if (counter == Integer.MAX_VALUE)
+		{
+			if (resources.size() == Integer.MAX_VALUE)
+			{
+				throw new IllegalArgumentException("Resources contains " + Integer.MAX_VALUE
+						+ " elements: no new elements can be added");
+			}
+			else
+			{
 				counter = 1;
 			}
 		}
 		String prefix = getResourceItemPrefix(resource);
 		String result = prefix + counter;
-		while (containsId(result)) {
-			result = prefix + (++ counter);
+		while (containsId(result))
+		{
+			result = prefix + (++counter);
 		}
 		lastId = counter;
 		return result;
@@ -122,129 +165,154 @@ public class Resources implements Serializable {
 	 * @param id
 	 * @return Whether the map of resources already contains a resource with the given id.
 	 */
-	public boolean containsId(String id) {
-		if (StringUtil.isBlank(id)) {
+	public boolean containsId(String id)
+	{
+		if (StringUtil.isBlank(id))
+		{
 			return false;
 		}
-		for (Resource resource: resources.values()) {
-			if (id.equals(resource.getId())) {
+		for (Resource resource : resources.values())
+		{
+			if (id.equals(resource.getId()))
+			{
 				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Gets the resource with the given id.
 	 * 
 	 * @param id
 	 * @return null if not found
 	 */
-	public Resource getById(String id) {
-		if (StringUtil.isBlank(id)) {
+	public Resource getById(String id)
+	{
+		if (StringUtil.isBlank(id))
+		{
 			return null;
 		}
-		for (Resource resource: resources.values()) {
-			if (id.equals(resource.getId())) {
+		for (Resource resource : resources.values())
+		{
+			if (id.equals(resource.getId()))
+			{
 				return resource;
 			}
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Remove the resource with the given href.
 	 * 
 	 * @param href
 	 * @return the removed resource, null if not found
 	 */
-	public Resource remove(String href) {
+	public Resource remove(String href)
+	{
 		return resources.remove(href);
 	}
-	
-	private void fixResourceHref(Resource resource) {
-		if(StringUtil.isNotBlank(resource.getHref())
-				&& ! resources.containsKey(resource.getHref())) {
+
+	private void fixResourceHref(Resource resource)
+	{
+		if (StringUtil.isNotBlank(resource.getHref()) && !resources.containsKey(resource.getHref()))
+		{
 			return;
 		}
-		if(StringUtil.isBlank(resource.getHref())) {
-			if(resource.getMediaType() == null) {
+		if (StringUtil.isBlank(resource.getHref()))
+		{
+			if (resource.getMediaType() == null)
+			{
 				throw new IllegalArgumentException("Resource must have either a MediaType or a href");
 			}
 			int i = 1;
 			String href = createHref(resource.getMediaType(), i);
-			while(resources.containsKey(href)) {
+			while (resources.containsKey(href))
+			{
 				href = createHref(resource.getMediaType(), (++i));
 			}
 			resource.setHref(href);
 		}
 	}
-	
-	private String createHref(MediaType mediaType, int counter) {
-		if(MediatypeService.isBitmapImage(mediaType)) {
+
+	private String createHref(MediaType mediaType, int counter)
+	{
+		if (MediatypeService.isBitmapImage(mediaType))
+		{
 			return "image_" + counter + mediaType.getDefaultExtension();
-		} else {
+		}
+		else
+		{
 			return "item_" + counter + mediaType.getDefaultExtension();
 		}
 	}
-	
-	
-	public boolean isEmpty() {
+
+	public boolean isEmpty()
+	{
 		return resources.isEmpty();
 	}
-	
+
 	/**
 	 * The number of resources
+	 * 
 	 * @return The number of resources
 	 */
-	public int size() {
+	public int size()
+	{
 		return resources.size();
 	}
-	
+
 	/**
-	 * The resources that make up this book.
-	 * Resources can be xhtml pages, images, xml documents, etc.
+	 * The resources that make up this book. Resources can be xhtml pages, images, xml documents, etc.
 	 * 
 	 * @return The resources that make up this book.
 	 */
-	public Map<String, Resource> getResourceMap() {
+	public Map<String, Resource> getResourceMap()
+	{
 		return resources;
 	}
-	
-	public Collection<Resource> getAll() {
+
+	public Collection<Resource> getAll()
+	{
 		return resources.values();
 	}
-	
-	
+
 	/**
 	 * Whether there exists a resource with the given href
+	 * 
 	 * @param href
 	 * @return Whether there exists a resource with the given href
 	 */
-	public boolean containsByHref(String href) {
-		if (StringUtil.isBlank(href)) {
+	public boolean containsByHref(String href)
+	{
+		if (StringUtil.isBlank(href))
+		{
 			return false;
 		}
 		return resources.containsKey(StringUtil.substringBefore(href, Constants.FRAGMENT_SEPARATOR_CHAR));
 	}
-	
+
 	/**
 	 * Sets the collection of Resources to the given collection of resources
 	 * 
 	 * @param resources
 	 */
-	public void set(Collection<Resource> resources) {
+	public void set(Collection<Resource> resources)
+	{
 		this.resources.clear();
 		addAll(resources);
 	}
-	
+
 	/**
 	 * Adds all resources from the given Collection of resources to the existing collection.
 	 * 
 	 * @param resources
 	 */
-	public void addAll(Collection<Resource> resources) {
-		for(Resource resource: resources) {
+	public void addAll(Collection<Resource> resources)
+	{
+		for (Resource resource : resources)
+		{
 			fixResourceHref(resource);
 			this.resources.put(resource.getHref(), resource);
 		}
@@ -255,43 +323,44 @@ public class Resources implements Serializable {
 	 * 
 	 * @param resources A map with as keys the resources href and as values the Resources
 	 */
-	public void set(Map<String, Resource> resources) {
+	public void set(Map<String, Resource> resources)
+	{
 		this.resources = new HashMap<String, Resource>(resources);
 	}
-	
-	
+
 	/**
-	 * First tries to find a resource with as id the given idOrHref, if that 
-	 * fails it tries to find one with the idOrHref as href.
+	 * First tries to find a resource with as id the given idOrHref, if that fails it tries to find one with the idOrHref as href.
 	 * 
 	 * @param idOrHref
 	 * @return the found Resource
 	 */
-	public Resource getByIdOrHref(String idOrHref) {
+	public Resource getByIdOrHref(String idOrHref)
+	{
 		Resource resource = getById(idOrHref);
-		if (resource == null) {
+		if (resource == null)
+		{
 			resource = getByHref(idOrHref);
 		}
 		return resource;
 	}
-	
-	
+
 	/**
-	 * Gets the resource with the given href.
-	 * If the given href contains a fragmentId then that fragment id will be ignored.
+	 * Gets the resource with the given href. If the given href contains a fragmentId then that fragment id will be ignored.
 	 * 
 	 * @param href
 	 * @return null if not found.
 	 */
-	public Resource getByHref(String href) {
-		if (StringUtil.isBlank(href)) {
+	public Resource getByHref(String href)
+	{
+		if (StringUtil.isBlank(href))
+		{
 			return null;
 		}
 		href = StringUtil.substringBefore(href, Constants.FRAGMENT_SEPARATOR_CHAR);
 		Resource result = resources.get(href);
 		return result;
 	}
-	
+
 	/**
 	 * Gets the first resource (random order) with the give mediatype.
 	 * 
@@ -300,10 +369,11 @@ public class Resources implements Serializable {
 	 * @param mediaType
 	 * @return the first resource (random order) with the give mediatype.
 	 */
-	public Resource findFirstResourceByMediaType(MediaType mediaType) {
+	public Resource findFirstResourceByMediaType(MediaType mediaType)
+	{
 		return findFirstResourceByMediaType(resources.values(), mediaType);
 	}
-	
+
 	/**
 	 * Gets the first resource (random order) with the give mediatype.
 	 * 
@@ -312,9 +382,12 @@ public class Resources implements Serializable {
 	 * @param mediaType
 	 * @return the first resource (random order) with the give mediatype.
 	 */
-	public static Resource findFirstResourceByMediaType(Collection<Resource> resources, MediaType mediaType) {
-		for (Resource resource: resources) {
-			if (resource.getMediaType() == mediaType) {
+	public static Resource findFirstResourceByMediaType(Collection<Resource> resources, MediaType mediaType)
+	{
+		for (Resource resource : resources)
+		{
+			if (resource.getMediaType() == mediaType)
+			{
 				return resource;
 			}
 		}
@@ -327,13 +400,17 @@ public class Resources implements Serializable {
 	 * @param mediaType
 	 * @return All resources that have the given MediaType.
 	 */
-	public List<Resource> getResourcesByMediaType(MediaType mediaType) {
+	public List<Resource> getResourcesByMediaType(MediaType mediaType)
+	{
 		List<Resource> result = new ArrayList<Resource>();
-		if (mediaType == null) {
+		if (mediaType == null)
+		{
 			return result;
 		}
-		for (Resource resource: getAll()) {
-			if (resource.getMediaType() == mediaType) {
+		for (Resource resource : getAll())
+		{
+			if (resource.getMediaType() == mediaType)
+			{
 				result.add(resource);
 			}
 		}
@@ -346,30 +423,71 @@ public class Resources implements Serializable {
 	 * @param mediaTypes
 	 * @return All Resources that match any of the given list of MediaTypes
 	 */
-	public List<Resource> getResourcesByMediaTypes(MediaType[] mediaTypes) {
+	public List<Resource> getResourcesByMediaTypes(MediaType[] mediaTypes)
+	{
 		List<Resource> result = new ArrayList<Resource>();
-		if (mediaTypes == null) {
+		if (mediaTypes == null)
+		{
 			return result;
 		}
-		
+
 		// this is the fastest way of doing this according to 
 		// http://stackoverflow.com/questions/1128723/in-java-how-can-i-test-if-an-array-contains-a-certain-value
 		List<MediaType> mediaTypesList = Arrays.asList(mediaTypes);
-		for (Resource resource: getAll()) {
-			if (mediaTypesList.contains(resource.getMediaType())) {
+		for (Resource resource : getAll())
+		{
+			if (mediaTypesList.contains(resource.getMediaType()))
+			{
 				result.add(resource);
 			}
 		}
 		return result;
 	}
 
-
 	/**
 	 * All resource hrefs
-	 *
+	 * 
 	 * @return all resource hrefs
 	 */
-	public Collection<String> getAllHrefs() {
+	public Collection<String> getAllHrefs()
+	{
 		return resources.keySet();
 	}
+
+	/// Parcelable
+	@Override
+	public int describeContents()
+	{
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags)
+	{
+		dest.writeInt(lastId);
+		
+		dest.writeByte((byte)(resources != null ? 1 : 0));
+		if (resources != null) 
+		{
+			final int size = resources.size();
+			dest.writeStringList(Arrays.asList(resources.keySet().toArray(new String[size])));
+			dest.writeTypedList(Arrays.asList(resources.values().toArray(new Resource[size])));
+		}
+
+	}
+
+	public static final Parcelable.Creator<Resources> CREATOR = new Parcelable.Creator<Resources>()
+	{
+		@Override
+		public Resources createFromParcel(Parcel source)
+		{
+			return new Resources(source);
+		}
+
+		@Override
+		public Resources[] newArray(int size)
+		{
+			return new Resources[size];
+		}
+	};
 }

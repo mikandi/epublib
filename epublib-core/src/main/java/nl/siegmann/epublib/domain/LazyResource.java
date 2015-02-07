@@ -13,6 +13,9 @@ import nl.siegmann.epublib.util.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 /**
  * A Resource that loads its data only on-demand.
  * This way larger books can fit into memory and can be opened faster.
@@ -66,6 +69,16 @@ public class LazyResource extends Resource {
         this.cachedSize = length;
     }
 	
+	/**
+	 * @param source
+	 */
+	public LazyResource(Parcel source)
+	{
+		super(source);
+		cachedSize = source.readLong();
+		if (source.readByte() == 1) filename = source.readString();
+	}
+
 	/**
 	 * Gets the contents of the Resource as an InputStream.
 	 * 
@@ -163,4 +176,35 @@ public class LazyResource extends Resource {
 		
 		return cachedSize;
 	}
+
+	/// Parcelable SIC!!!
+	@Override
+	public int describeContents()
+	{
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags)
+	{
+		super.writeToParcel(dest, flags);
+		dest.writeLong(cachedSize);
+		dest.writeByte((byte)(filename == null ? 0 : 1));
+		if (filename != null) dest.writeString(filename);
+	}
+
+	public static final Parcelable.Creator<LazyResource> CREATOR = new Parcelable.Creator<LazyResource>()
+	{
+		@Override
+		public LazyResource createFromParcel(Parcel source)
+		{
+			return new LazyResource(source);
+		}
+		
+		@Override
+		public LazyResource[] newArray(int size)
+		{
+			return new LazyResource[size];
+		}
+	};
 }
